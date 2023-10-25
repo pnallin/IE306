@@ -13,13 +13,15 @@ sampleRate = 44100 # samples per second - intrinsec to sound system
 Ts = 0.1 # seconds - symbol time
 
 
-audioFile = 'test.wav'
+audioFile = 'signal.wav'
 plot = True
 
-# Sequencer
-nSeq = 4
-seq = signal.max_len_seq(nSeq)[0]
+# ----- Sequencer
+nSequencer = 4
+seq = signal.max_len_seq(nSequencer)[0]
 seqStr = ''.join(chr(i + 48) for i in seq)
+seqIntValue = int(seqStr,2)
+
 
 
 # ----- FSK
@@ -35,24 +37,19 @@ x = []
 for freq in f:
     x.append(np.sin(2*np.pi*freq*t))
 
-
 symbolMapping = [b'00', b'01', b'11', b'10']
 
 
 
-# Moving average filter
+# ----- Moving average filter
 w = 1000
 mAvg = (np.ones((1,w))/w)[0]
 
 
-# Sequencer
-nSeq = 4
-seq = signal.max_len_seq(nSeq)[0]
-seqStr = ''.join(chr(i + 48) for i in seq)
-seqIntValue = int(seqStr,2)
 
 
-# Audio File
+
+# Open Audio File
 sampleRate, receivedData = wavfile.read(audioFile)
 
 if (receivedData.dtype == 'int16'):
@@ -166,7 +163,7 @@ while (evaluateIndex < len(mt[0])):
 # FIND SEQUENCER DELIMITATION INDEX - MINIMAL DISTANCE METHOD
 distances = []
 minIndex = []
-for i in range(len(incomingBits) - (2**nSeq - 1) + 1):
+for i in range(len(incomingBits) - (2**nSequencer - 1) + 1):
     recebidoInt = int(incomingBits[i:i+15],2)
     distances.append(abs(seqIntValue - recebidoInt))
 
@@ -193,5 +190,8 @@ for sequence in decodedMessage.keys():
         byte = incomingBits[idx+8*n:idx+8*n+8]
         caracter = (chr(int(byte,2)))
         decodedMessage[sequence]['receivedMessage'] += caracter
+
+
+
 
 print(decodedMessage)

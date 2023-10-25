@@ -7,14 +7,15 @@ import plotly.graph_objects as go
 
 sampleRate = 44100 # samples per second - intrinsec to sound system
 Ts = 0.1 # seconds - symbol time
+nSequencias = 3 # to repeat payload data
 
 
-audioFile = 'test.wav'
+audioFile = 'signal.wav'
 plot = False
 
 # ----- SEQUENCER
-nSeq = 4
-seq = signal.max_len_seq(nSeq)[0]
+nSequencer = 4
+seq = signal.max_len_seq(nSequencer)[0]
 seqStr = ''.join(chr(i + 48) for i in seq)
 
 
@@ -46,9 +47,13 @@ mean_noise = 0
 stdev = 0.75
 
 
-# ----- MESSAGE
-mensagem = 'Transmissao de dados via FSK 440/770 Hz'
-nSequencias = 3
+
+
+
+
+
+# MESSAGE + SEQUENCER
+mensagem = 'Transmissao de dados via FSK'
 
 mensagemBitsStr = ''.join(format(ord(i), '08b') for i in mensagem)
 
@@ -62,22 +67,7 @@ while(len(seqEnviada) % int(np.log2(nSymbols))):
 
 
 
-
-# ----- RCOSINE -----
-beta = 0.355
-Tsymb = float(sampleRate)/(3*f1)
-num_taps = Tsymb*8
-
-ts = np.arange(num_taps) - (num_taps-1)//2
-h = (1/Tsymb)*np.sinc(ts/Tsymb) * (np.cos(np.pi*beta*ts/Tsymb) / (1 - (2*beta*ts/Tsymb)**2))
-# ------------------------------
-
-
-
-
-
-
-# ----- MAPPING SYMBOLS
+# MAPPING SYMBOLS -> FSK
 sinalEnviado = np.array([])
 i=0
 while(i < len(seqEnviada)):
@@ -91,17 +81,19 @@ while(i < len(seqEnviada)):
         sinalEnviado = np.concatenate((sinalEnviado, symbolMapping[c]))
     else:
         print("Symbol {} not mapped !".format(c))
- 
-        
-print(len(seqEnviada), seqEnviada)
+   
 
 
-
-# A ENVIAR
+# TO BE SENT
 gt = sinalEnviado
 gt += np.random.normal(mean_noise, stdev, len(gt))
+
+
+# PLAY AUDIO
 sd.play(gt, blocking=True)
 
+
+# SAVE AUDIO INTO *.WAV FILE
 scaled = np.int16(gt / np.max(np.abs(gt)) * 32767)
 wavfile.write(audioFile, sampleRate, scaled)
 
