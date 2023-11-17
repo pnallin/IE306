@@ -10,17 +10,19 @@ from scipy.ndimage import gaussian_filter1d
 
 
 sampleRate = 44100 # samples per second - intrinsec to sound system
-Ts = 0.1 # seconds - symbol time
+Ts = 0.01 # seconds - symbol time
 
 
 audioFile = 'signal.wav'
 plot = True
 
 # ----- Sequencer
-nSequencer = 4
+nSequencer = 6
+nbitsSequencer = (2**nSequencer) - 1
 seq = signal.max_len_seq(nSequencer)[0]
-seqStr = ''.join(chr(i + 48) for i in seq)
+seqStr = '0' + ''.join(chr(i + 48) for i in seq)
 seqIntValue = int(seqStr,2)
+minDistanceAccepted = 0.15
 
 
 
@@ -42,7 +44,7 @@ symbolMapping = [b'00', b'01', b'11', b'10']
 
 
 # ----- Moving average filter
-w = 1000
+w = 100
 mAvg = (np.ones((1,w))/w)[0]
 
 
@@ -99,7 +101,7 @@ for r in rt:
     mt.append(movingAvg/max(movingAvg))
 
 
-if plot:
+if 0: #plot:
     fig = go.Figure()
     for i in range(len(f)):
         fig.add_trace(go.Scatter(y=mt[i],
@@ -163,13 +165,29 @@ while (evaluateIndex < len(mt[0])):
 # FIND SEQUENCER DELIMITATION INDEX - MINIMAL DISTANCE METHOD
 distances = []
 minIndex = []
-for i in range(len(incomingBits) - (2**nSequencer - 1) + 1):
-    recebidoInt = int(incomingBits[i:i+15],2)
-    distances.append(abs(seqIntValue - recebidoInt))
+for i in range(len(incomingBits) - nbitsSequencer + 1):
+    recebidoInt = int(incomingBits[i:i+nbitsSequencer],2)
+    distances.append((float(bin(recebidoInt ^ seqIntValue).count("1")))/(2**nSequencer))
+    #distances.append(abs(seqIntValue - recebidoInt))
 
 for idx in range(len(distances)):
-    if distances[idx] == min(distances):
+    if distances[idx] < minDistanceAccepted:
         minIndex.append(idx)
+
+print(minIndex)
+if plot:
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(y=distances))
+
+    fig.update_layout(
+        title={
+            'text': "Distances",
+            'y':0.9,
+            'x':0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'}
+    )
+    fig.show()
 
 
 # QUANTIDADE DE SEQUENCIAS RECEBIDAS
@@ -179,8 +197,9 @@ receivedSequences = len(minIndex) - 1
 
 # INFORMACOES DE CADA SEQUENCIA
 for i in range(receivedSequences):
-    decodedMessage[i] = {'payloadIndex': minIndex[i]+15,
-                         'payloadBytes': int(len(incomingBits[minIndex[i]+15:minIndex[i+1]])/8),
+    
+    decodedMessage[i] = {'payloadIndex': minIndex[i]+nbitsSequencer,
+                         'payloadBytes': int(len(incomingBits[minIndex[i]+nbitsSequencer:minIndex[i+1]])/8),
                          'receivedMessage': ""}
 
 # DECODIFICACAO DA MENSAGEM ASCII
